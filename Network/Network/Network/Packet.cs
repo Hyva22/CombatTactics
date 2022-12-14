@@ -7,8 +7,9 @@ namespace Network
 {
     public enum PacketID
     {
+        ClientID,
         Register,
-        IsEmailTaken,
+        EmailTaken,
         GetAccountForMail,
         GetAccountForID,
         Login,
@@ -19,13 +20,14 @@ namespace Network
         private List<byte> buffer;
         private int readPosition;
 
-        public Packet(int packetID = -1, int senderID = -1)
+        public Packet(PacketID packetID)
         {
-            readPosition = sizeof(int) * 3;
+            int baseLength = sizeof(int) * 3;
             buffer = new List<byte>();
-            Write(sizeof(int));
-            Write(packetID);
-            Write(senderID);
+            Write(baseLength);
+            Write((int)packetID);
+            Write(-1); //Write palceholder sender ID;
+            readPosition = baseLength;
         }
 
         public Packet(byte[] data)
@@ -37,7 +39,7 @@ namespace Network
         /// <summary>
         /// Calculates the packet size and writes in the beginning of the buffer. Should be called every time after adding or removing data from the buffer.
         /// </summary>
-        private void UpdateLength()
+        public void UpdateLength()
         {
             int length = buffer.Count; //Save size of the packet
             buffer.RemoveRange(0, sizeof(int)); //remove old size of the packet from the beginning of the buffer
@@ -49,22 +51,20 @@ namespace Network
         public void Reset(bool clearData = false)
         {
             if (clearData)
-            {
                 buffer.Clear(); // Clear buffer
-            }
             readPosition = 0;
         }
 
-        /// <summary>Gets the length of the packet's content.</summary>
+        /// <summary>Gets the size of the packet's content.</summary>
         public int Length()
         {
-            return buffer.Count; // Return the length of buffer
+            return buffer.Count; // Return the size of buffer
         }
 
-        /// <summary>Gets the length of the unread data contained in the packet.</summary>
+        /// <summary>Gets the size of the unread data contained in the packet.</summary>
         public int UnreadLength()
         {
-            return Length() - readPosition; // Return the remaining length (unread)
+            return Length() - readPosition; // Return the remaining size (unread)
         }
 
         /// <summary>
@@ -83,6 +83,17 @@ namespace Network
         public int GetSenderID()
         {
             return BitConverter.ToInt32(buffer.GetRange(8, 4).ToArray());
+        }
+
+        /// <summary>
+        /// Sets the sender ID, should be called right before sending Data
+        /// </summary>
+        internal void SetSenderID(int id)
+        {
+            const int size = sizeof(int); //Length to be removed and written 
+            const int senderIDPosition = size * 2; //startposition of senderID
+            buffer.RemoveRange(senderIDPosition, size); //remove old id from the packet.
+            buffer.InsertRange(senderIDPosition, BitConverter.GetBytes(id)); //Insert new id into the packet.
         }
 
         /// <summary>Sets the packet's content and prepares it to be read.</summary>
@@ -104,19 +115,16 @@ namespace Network
         public void Write(byte[] _value)
         {
             buffer.AddRange(_value);
-            UpdateLength(); //Update the length of the packet
         }
 
         public void Write(int value)
         {
             buffer.AddRange(BitConverter.GetBytes(value)); // Add the int itself
-            UpdateLength(); //Update the length of the packet
         }
 
         public void Write(bool value)
         {
             buffer.AddRange(BitConverter.GetBytes(value)); // Add the int itself
-            UpdateLength(); //Update the length of the packet
         }
 
         /// <summary>Adds a string to the packet.</summary>
@@ -124,21 +132,23 @@ namespace Network
         public void Write(string value)
         {
             byte[] bytes = Encoding.Unicode.GetBytes(value); //Convert to byte array first to prevent errors with different bytes per character from different encoding.
-            Write(bytes.Length); // Add the length of the string to the packet
+            Write(bytes.Length); // Add the size of the string to the packet
             buffer.AddRange(bytes); // Add the string itself
-            UpdateLength(); //Update the length of the packet
+            UpdateLength(); //Update the size of the packet
         }
         #endregion Write
 
         #region Read
         /// <summary>
-        /// Skips past Packet length, packet ID, Sernder ID
+        /// Skips past Packet size, packet ID, Sernder ID
+        /// does nothing if readposition si already advanced further
         /// </summary>
+        [Obsolete]
         public void Skip()
         {
-            ReadInt();
-            ReadInt();
-            ReadInt();
+            int start = sizeof(int) * 3;
+            if (readPosition < start)
+                readPosition = start;
         }
 
         private byte[] CheckSize(int size, bool moveReadPos = true)
@@ -182,7 +192,7 @@ namespace Network
         /// <param name="moveReadPos">Whether or not to move the buffer's read position.</param>
         public string ReadString(bool moveReadPos = true)
         {
-            int size = ReadInt(); // Read length of the string.
+            int size = ReadInt(); // Read size of the string.
             byte[] bytes = CheckSize(size, moveReadPos); //Perform size checks and get byte array
             string value = Encoding.Unicode.GetString(bytes); // Convert the bytes to an int
             return value; // Return the int

@@ -78,21 +78,18 @@ namespace Network.Server
         #region Send
         public void SendToClient(int clientID, Packet packet)
         {
-            DebugOutput.DebugAction($"Sending ID to client {clientID}...");
+            var packetName = (PacketID)packet.GetPacketID();
+            DebugOutput.DebugAction($"Sending packet {packetName} to client {clientID}...");
             clients.TryGetValue(clientID, out var client);
             client?.SendData(packet);
         }
 
         internal void SendClientID(int clientID)
         {
-            Packet packet = new(-1, ServerID);
+            Packet packet = new(PacketID.ClientID);
             packet.Write(clientID);
             SendToClient(clientID, packet);
         }
         #endregion Send
-
-        #region Receive
-
-        #endregion Receive
     }
 }

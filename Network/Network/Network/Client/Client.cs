@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Network.Network;
+using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 
@@ -9,6 +10,8 @@ namespace Network.Client
         private readonly string serverIP;
         private readonly int port;
 
+        private TCP tcp;
+
         public Client(string serverIP, int port) : base()
         {
             this.serverIP = serverIP;
@@ -18,7 +21,14 @@ namespace Network.Client
                 ReceiveBufferSize = dataBufferSize,
                 SendBufferSize = dataBufferSize
             };
-            packetHandler.AddPacketHandler(-1, ReceiveID);
+            packetHandler.AddPacketHandler(PacketID.ClientID, ReceiveID);
+
+            tcp = new(packetHandler);
+        }
+
+        public void TCPConnect()
+        {
+            tcp.Connect(serverIP, port);
         }
 
         public void ConnectToServer()
@@ -51,7 +61,6 @@ namespace Network.Client
         #region Receive
         private void ReceiveID(Packet packet)
         {
-            packet.Skip();
             ID = packet.ReadInt();
             DebugOutput.DebugAction($"Receiving ID from server: {ID}...");
         }

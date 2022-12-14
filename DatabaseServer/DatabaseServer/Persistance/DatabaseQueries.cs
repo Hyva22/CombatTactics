@@ -35,7 +35,7 @@ namespace DataBase.Persistance
             long result = (long)command.ExecuteScalar();
         }
 
-        public static void AddPlayerAccount(PlayerAccount playerAccount)
+        public static bool AddPlayerAccount(PlayerAccount playerAccount)
         {
             Console.WriteLine($"Email: {playerAccount.email}");
             string query = @$"INSERT INTO player_account(email, account_name, password, first_name, sur_name, birthday, create_date)
@@ -50,8 +50,15 @@ namespace DataBase.Persistance
             command.Parameters.AddWithValue("sur_name", playerAccount.surName);
             command.Parameters.AddWithValue("birthday", playerAccount.birthDay);
             command.Parameters.AddWithValue("date", DateTime.Now);
+            try
+            {
+                long result = (long)command.ExecuteScalar();
+            }catch(Exception ex)
+            {
+                return false;
+            }
 
-            long result = (long)command.ExecuteScalar();
+            return true;
         }
 
         public static bool PlayerExistsByID(long id)

@@ -23,15 +23,15 @@ namespace DatabaseServer.Network
 
         private void InitializePacketHandlers()
         {
-            server.packetHandler.AddPacketHandler((int)PacketID.IsEmailTaken, ReceiveIsEmailTaken);
             server.packetHandler.AddPacketHandler((int)PacketID.Register, ReceiveRegister);
         }
 
         #region send
-        public void SendIsEmailTaken(int clientID, bool value)
+        public void SendEmailTaken(int clientID, string email)
         {
-            Packet packet = new((int)PacketID.IsEmailTaken, id);
-            packet.Write(value);
+            Console.WriteLine("Send Email taken");
+            Packet packet = new(PacketID.EmailTaken);
+            packet.Write(email);
             server.SendToClient(clientID, packet);
         }
         #endregion send
@@ -39,21 +39,19 @@ namespace DatabaseServer.Network
         #region receive
         private void ReceiveRegister(Packet packet)
         {
-            packet.Skip();
-
+            Console.WriteLine($"Receive register from {packet.GetSenderID()}");
             string jsonString = packet.ReadString();
-            Console.WriteLine(jsonString);
             PlayerAccount playerAccount = PersistantObject.FromJson<PlayerAccount>(jsonString);
+            string email = playerAccount.email;
 
-            Console.WriteLine(playerAccount.email);
+            if (DatabaseQueries.PlayerExistsByEmail(email))
+            {
+                Console.WriteLine("Email taken");
+                SendEmailTaken(packet.GetSenderID(), email);
+                return;
+            }
+
             DatabaseQueries.AddPlayerAccount(playerAccount);
-        }
-
-        private void ReceiveIsEmailTaken(Packet packet)
-        {
-            packet.Skip();
-            string email = packet.ReadString();
-            SendIsEmailTaken(packet.GetSenderID(), DatabaseQueries.PlayerExistsByEmail(email));
         }
         #endregion receive
     }

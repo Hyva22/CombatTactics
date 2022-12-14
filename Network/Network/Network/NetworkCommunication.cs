@@ -7,11 +7,11 @@ namespace Network
     public abstract class NetworkCommunication
     {
         public int ID { get; protected set; }
+        public readonly PacketHandler packetHandler;
         public TcpClient TcpClient { get; protected set; }
         protected const int dataBufferSize = 4096;
         protected byte[] receiveBuffer;
         protected List<byte> unreadData;
-        public readonly PacketHandler packetHandler;
 
         protected NetworkStream NetworkStream => TcpClient.GetStream();
 
@@ -19,7 +19,7 @@ namespace Network
         {
             receiveBuffer = new byte[dataBufferSize];
             unreadData = new List<byte>();
-            this.packetHandler = packetHandler?? new PacketHandler();
+            this.packetHandler = packetHandler ?? new PacketHandler();
         }
 
         protected void ReceiveCallback(IAsyncResult _result)
@@ -55,6 +55,7 @@ namespace Network
                 packetLength = unreadData.Count >= 4 ? BitConverter.ToInt32(unreadData.ToArray()) : 0)
             {
                 Packet packet = new(unreadData.GetRange(0, packetLength).ToArray());
+                packet.SetSenderID(ID);
                 packetHandler.HandleData(packet);
                 unreadData.RemoveRange(0, packetLength);
             }
@@ -64,11 +65,13 @@ namespace Network
         {
             try
             {
+                packet.SetSenderID(ID);
+                packet.UpdateLength();
                 NetworkStream.BeginWrite(packet.ToArray(), 0, packet.Length(), null, null);
             }
-            catch (Exception)
+            catch (Exception exception)
             {
-
+                DebugOutput.DebugAction(exception.Message);
             }
         }
     }

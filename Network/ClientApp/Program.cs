@@ -6,7 +6,7 @@ internal class Program
     {
         DebugOutput.DebugAction = Console.WriteLine;
         Network.Client.Client client = new("127.0.0.1", 22220);
-        client.TCPConnect();
+        client.ConnectToServer();
 
         Console.ReadKey();
     }

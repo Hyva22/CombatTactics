@@ -11,39 +11,40 @@ namespace Network.Network
 {
     public class TCP
     {
-        private readonly int ID;
-        private TcpClient tcpClient;
+        public int ID;
+        public TcpClient TcpClient { get; private set; }
         private const int dataBufferSize = 4096;
-        private byte[] receiveBuffer;
-        private List<byte> unreadData;
+        private readonly byte[] receiveBuffer;
+        private readonly List<byte> unreadData;
         private readonly PacketHandler packetHandler;
 
-        private NetworkStream NetworkStream => tcpClient.GetStream();
+        private NetworkStream NetworkStream => TcpClient.GetStream();
 
-        public TCP(PacketHandler packetHandler)
+        public TCP(PacketHandler packetHandler, int id)
         {
             this.packetHandler = packetHandler;
+            this.ID = id;
             unreadData = new();
             receiveBuffer = new byte[dataBufferSize];
         }
 
         public void Connect(TcpClient _tcpClient)
         {
-            tcpClient = _tcpClient;
-            tcpClient.ReceiveBufferSize = dataBufferSize;
-            tcpClient.SendBufferSize = dataBufferSize;
+            TcpClient = _tcpClient;
+            TcpClient.ReceiveBufferSize = dataBufferSize;
+            TcpClient.SendBufferSize = dataBufferSize;
 
             NetworkStream.BeginRead(receiveBuffer, 0, dataBufferSize, ReceiveCallback, null);
         }
 
         public void Connect(string ip, int port)
         {
-            tcpClient = new TcpClient
+            TcpClient = new TcpClient
             {
                 ReceiveBufferSize = dataBufferSize,
                 SendBufferSize = dataBufferSize
             };
-            tcpClient.BeginConnect(ip, port, ConnectCallback, tcpClient);
+            TcpClient.BeginConnect(ip, port, ConnectToServerCallback, TcpClient);
         }
 
         public void SendData(Packet packet)
@@ -60,11 +61,11 @@ namespace Network.Network
             }
         }
 
-        private void ConnectCallback(IAsyncResult result)
+        private void ConnectToServerCallback(IAsyncResult result)
         {
-            tcpClient.EndConnect(result);
+            TcpClient.EndConnect(result);
 
-            if (!tcpClient.Connected)
+            if (!TcpClient.Connected)
             {
                 return;
             }

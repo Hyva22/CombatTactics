@@ -13,12 +13,15 @@ namespace Network
         GetAccountForMail,
         GetAccountForID,
         Login,
+        UPDTest,
     }
 
     public class Packet
     {
         private List<byte> buffer;
         private int readPosition;
+
+        public const int MinLength = sizeof(int) * 3;
 
         public Packet(PacketID packetID)
         {
@@ -32,8 +35,20 @@ namespace Network
 
         public Packet(byte[] data)
         {
-            readPosition = sizeof(int) * 3;
+            readPosition = MinLength;
             buffer = new List<byte>(data);
+        }
+
+        /// <summary>
+        /// Checks the packet for errors.
+        /// </summary>
+        /// <returns>true if the packet is valid, false if it has errors</returns>
+        public bool Validate()
+        {
+            if(Length() < MinLength)
+                return false;
+
+            return true;
         }
 
         /// <summary>

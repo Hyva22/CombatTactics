@@ -1,28 +1,29 @@
+using Network.Network;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 
 namespace Network.Server
 {
-    class Client : NetworkCommunication
+    class Client
     {
         private readonly Server server;
 
-        public Client(int ID, Server server, PacketHandler handler) : base(handler)
+        public TCP tcp;
+        public UDP udp;
+
+        public Client(int ID, Server server)
         {
-            this.ID = ID;
+            tcp = new(server.packetHandler, ID);
+            udp = new(server.packetHandler, ID);
             this.server = server;
         }
 
         public void Connect(TcpClient _socket)
         {
-            TcpClient = _socket;
-            TcpClient.ReceiveBufferSize = dataBufferSize;
-            TcpClient.SendBufferSize = dataBufferSize;
-
-            NetworkStream.BeginRead(receiveBuffer, 0, dataBufferSize, ReceiveCallback, null);
-
-            server.SendClientID(ID);
+            tcp.Connect(_socket);
+            server.SendClientID(tcp.ID);
         }
     }
 }

@@ -1,68 +1,51 @@
 ﻿using Network.Network;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 
 namespace Network.Client
 {
-    public class Client : NetworkCommunication
+    public class Client
     {
+        private int id;
         private readonly string serverIP;
-        private readonly int port;
+        private readonly int serverPort;
+        private readonly PacketHandler packetHandler;
 
-        private TCP tcp;
+        public TCP tcp;
+        public UDP udp;
 
-        public Client(string serverIP, int port) : base()
+        public Client(string serverIP, int serverPort)
         {
             this.serverIP = serverIP;
-            this.port = port;
-            TcpClient = new TcpClient
-            {
-                ReceiveBufferSize = dataBufferSize,
-                SendBufferSize = dataBufferSize
-            };
+            this.serverPort = serverPort;
+            packetHandler = new();
             packetHandler.AddPacketHandler(PacketID.ClientID, ReceiveID);
+            packetHandler.AddPacketHandler(PacketID.UPDTest, ReceivUDPTest);
 
-            tcp = new(packetHandler);
-        }
-
-        public void TCPConnect()
-        {
-            tcp.Connect(serverIP, port);
+            tcp = new(packetHandler, id);
+            udp = new(packetHandler, id);
         }
 
         public void ConnectToServer()
         {
-            DebugOutput.DebugAction($"Connecting to server: {serverIP} on port: {port}.");
-            TcpClient.BeginConnect(serverIP, port, ConnectCallback, TcpClient);
+            DebugOutput.DebugAction($"Connecting to server: {serverIP} on port: {serverPort}.");
+            tcp.Connect(serverIP, serverPort);
         }
-
-        private void ConnectCallback(IAsyncResult _result)
-        {
-            try
-            {
-                TcpClient.EndConnect(_result);
-            }catch(Exception e)
-            {
-                DebugOutput.DebugAction(e.Message);
-            }
-
-            if (!TcpClient.Connected)
-            {
-                DebugOutput.DebugAction("Could not connect!");
-                return;
-            }
-            NetworkStream.BeginRead(receiveBuffer, 0, dataBufferSize, ReceiveCallback, null);
-        }
-
-        #region Send
-        #endregion Send
 
         #region Receive
         private void ReceiveID(Packet packet)
         {
-            ID = packet.ReadInt();
-            DebugOutput.DebugAction($"Receiving ID from server: {ID}...");
+            tcp.ID = packet.ReadInt();
+            DebugOutput.DebugAction($"Receiving ID from server: {tcp.ID}...");
+            udp.id = tcp.ID;
+            udp.Connect(serverIP, serverPort, ((IPEndPoint)tcp.TcpClient.Client.LocalEndPoint).Port);
+        }
+
+        private void ReceivUDPTest(Packet packet)
+        {
+            DebugOutput.DebugAction(packet.ReadString());
         }
         #endregion Receive
     }

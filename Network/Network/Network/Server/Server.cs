@@ -78,6 +78,9 @@ namespace Network.Server
                 Packet receivedPacket = new(receivedData);
                 udpListener.BeginReceive(UDPReceiveCallback, null); //Continue listening.
 
+                if (clientEndPoint == null)
+                    return;
+
                 if (!receivedPacket.Validate())
                     return;
 

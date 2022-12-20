@@ -29,24 +29,21 @@ namespace DatabaseServer.Network
         #region send
         public void SendEmailTaken(int clientID, string email)
         {
-            Console.WriteLine("Send Email taken");
             Packet packet = new(PacketID.EmailTaken);
             packet.Write(email);
-            server.SendToClient(clientID, packet);
+            server.SendTCP(clientID, packet);
         }
         #endregion send
 
         #region receive
         private void ReceiveRegister(Packet packet)
         {
-            Console.WriteLine($"Receive register from {packet.GetSenderID()}");
             string jsonString = packet.ReadString();
             PlayerAccount playerAccount = PersistantObject.FromJson<PlayerAccount>(jsonString);
             string email = playerAccount.email;
 
             if (DatabaseQueries.PlayerExistsByEmail(email))
             {
-                Console.WriteLine("Email taken");
                 SendEmailTaken(packet.GetSenderID(), email);
                 return;
             }

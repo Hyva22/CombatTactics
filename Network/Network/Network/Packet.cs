@@ -8,6 +8,7 @@ namespace Network
     public enum PacketID
     {
         ClientID,
+        SendMessage,
         Register,
         EmailTaken,
         GetAccountForMail,

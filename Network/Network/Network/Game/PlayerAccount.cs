@@ -11,8 +11,8 @@ namespace Network.Game
         [Column("password")] public string password;
         [Column("first_name")] public string firstName;
         [Column("sur_name")] public string surName;
-        [Column("birthday")] public DateTime birthDay;
-        [Column("create_date")] public DateTime creationDate;
-        [Column("last_login")] public DateTime lastLogin;
+        [Column("birthday")] public DateTime? birthDay;
+        [Column("create_date", @default: true)] public DateTime? creationDate;
+        [Column("last_login")] public DateTime? lastLogin;
     }
 }

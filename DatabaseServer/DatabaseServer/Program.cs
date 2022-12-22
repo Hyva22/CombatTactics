@@ -23,7 +23,27 @@ namespace DatabaseServer
             while (true)
             {
                 input = Console.ReadLine() ?? "";
+                if(input == "add")
+                {
+                    InsertTest();
+                }
             }
+        }
+
+        private static void InsertTest()
+        {
+
+            PlayerAccount player = new PlayerAccount()
+            {
+                id = 1,
+                accountName = "Test",
+                email = "tt@e.de",
+                password = "123"
+            };
+
+            var result = DatabaseQueries.Insert(player);
+
+            Console.WriteLine(result);
         }
     }
 }

@@ -11,7 +11,7 @@ namespace Network.Client
         private int id;
         private readonly string serverIP;
         private readonly int serverPort;
-        private readonly PacketHandler packetHandler;
+        public readonly PacketHandler packetHandler;
 
         public TCP tcp;
         public UDP udp;

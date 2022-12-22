@@ -1,6 +1,4 @@
-﻿using Network;
-using Network.Game;
-using Network.Server;
+﻿using Network.Game;
 
 class Program
 {
@@ -12,11 +10,6 @@ class Program
             email = "t@e.de",
             password = "123",
         };
-        var res = PersistantObjectParser.Parse(player, out string tableName, false);
-        Console.WriteLine(tableName);
-        foreach (var item in res)
-        {
-            Console.WriteLine(item);
-        }
+
     }
 }

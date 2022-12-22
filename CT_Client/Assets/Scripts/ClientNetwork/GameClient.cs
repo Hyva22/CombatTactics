@@ -32,10 +32,10 @@ namespace GameClient
         public static void Register(PlayerAccount playerAccount)
         {
             Debug.Log("send register");
-            Packet packet = new((int)PacketID.Register);
+            Packet packet = new(PacketID.Register);
             string jsonString = playerAccount.ToJson();
             packet.Write(jsonString);
-            client.SendData(packet);
+            client.tcp.SendData(packet);
         }
         #endregion send
 

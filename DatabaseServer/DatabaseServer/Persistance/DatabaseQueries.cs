@@ -1,5 +1,6 @@
 ﻿using Network.Game;
 using Npgsql;
+using System.Diagnostics;
 
 namespace DataBase.Persistance
 {
@@ -19,14 +20,42 @@ namespace DataBase.Persistance
 
         private static string GenerateInsertString(PersistantObject obj)
         {
-            string query = @$"INSERT INTO player_account(";
+            var tabledata = PersistantObjectParser.Parse(obj, true);
+            var keys = tabledata.Data.Keys.ToList();
+            var keyString = string.Join(", ", keys);
+            var valueString = "@" + string.Join(", @", keys);
+            string query = @$"INSERT INTO {tabledata.TableName}({keyString}) VALUES({valueString}) RETURNING {tabledata.PrimaryKey.Item1};";
+            return query;
+        }
 
-            var result = PersistantObjectParser.Parse(obj, out string tableName, false);
-            foreach(var item in result)
+        public static long Insert(PersistantObject obj)
+        {
+            string query = GenerateInsertString(obj);
+            NpgsqlCommand command = new(query, connection);
+
+            var data = PersistantObjectParser.Parse(obj, true).Data;
+
+            foreach(var item in data)
             {
-
+                Console.WriteLine($"{item.Key}: {item.Value} {item.Value == null} {item.Value == default}");
+                command.Parameters.AddWithValue(item.Key, item.Value ?? DBNull.Value);
             }
-            return "";
+
+            try
+            {
+                var result = command.ExecuteScalar();
+                if (result == null)
+                {
+                    Console.WriteLine("Result is null!");
+                    return 0;
+                }
+                return (long)result;
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message);
+                return 0;
+            }
         }
 
         /// <summary>
@@ -101,9 +130,9 @@ namespace DataBase.Persistance
 
         //public static PlayerAccount? GetPlayerAccount(long id)
         //{
-        //    string query = @$"SELECT * FROM player_account WHERE id = @id";
+        //    string queryHead = @$"SELECT * FROM player_account WHERE id = @id";
 
-        //    NpgsqlCommand command = new(query, connection);
+        //    NpgsqlCommand command = new(queryHead, connection);
         //    command.Parameters.AddWithValue("id", id);
 
         //    NpgsqlDataReader reader = command.ExecuteReader();

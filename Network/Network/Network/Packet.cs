@@ -102,7 +102,7 @@ namespace Network
         }
 
         /// <summary>
-        /// Sets the sender ID, should be called right before sending Data
+        /// Sets the sender ID, should be called right before sending Column
         /// </summary>
         internal void SetSenderID(int id)
         {

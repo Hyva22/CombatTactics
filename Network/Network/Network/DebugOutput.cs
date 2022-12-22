@@ -8,6 +8,6 @@ namespace Network
 {
     public static class DebugOutput
     {
-        public static Action<string> DebugAction;
+        public static Action<string> DebugAction = Console.WriteLine;
     }
 }

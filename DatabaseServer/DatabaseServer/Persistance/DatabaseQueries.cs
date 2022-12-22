@@ -5,37 +5,36 @@ namespace DataBase.Persistance
 {
     internal static class DatabaseQueries
     {
+        private const string Host = "localhost";
+        private const string Username = "postgres";
+        private const string Password = "123";
+        private const string Database = "Game";
         private static NpgsqlConnection? connection;
 
         public static void Connect()
         {
-            connection = new("Host=localhost;Username=postgres;Password=$$BBsp0r3;Database=Game");
+            connection = new($"Host={Host};Username={Username};Password={Password};Database={Database}");
             connection.Open();
         }
 
-        public static void AddPlayerAccount(string email, string password, string accountName, string firstName, string surName,
-            int birthdayYear, int birthdayMonth, int birthdayDay)
+        private static string GenerateInsertString(PersistantObject obj)
         {
-            if (PlayerExistsByEmail(email))
-                return;
+            string query = @$"INSERT INTO player_account(";
 
-            string query = @$"INSERT INTO player_account(email, account_name, password, first_name, sur_name, birthday, create_date)
-                                    VALUES(@email, @account_name, @password, @first_name, @sur_name, @birthday, @date)
-                                    RETURNING id;";
+            var result = PersistantObjectParser.Parse(obj, out string tableName, false);
+            foreach(var item in result)
+            {
 
-            NpgsqlCommand command = new(query, connection);
-            command.Parameters.AddWithValue("email", email);
-            command.Parameters.AddWithValue("account_name", accountName);
-            command.Parameters.AddWithValue("password", password);
-            command.Parameters.AddWithValue("first_name", firstName);
-            command.Parameters.AddWithValue("sur_name", surName);
-            command.Parameters.AddWithValue("birthday", new DateOnly(birthdayYear, birthdayMonth, birthdayDay));
-            command.Parameters.AddWithValue("date", DateTime.Now);
-
-            long result = (long)command.ExecuteScalar();
+            }
+            return "";
         }
 
-        public static bool AddPlayerAccount(PlayerAccount playerAccount)
+        /// <summary>
+        /// Adds the given player account to the database.
+        /// </summary>
+        /// <param name="playerAccount">The account to be added</param>
+        /// <returns>Id of the newly created account. 0 if the creation failed.</returns>
+        public static long AddPlayerAccount(PlayerAccount playerAccount)
         {
             Console.WriteLine($"Email: {playerAccount.email}");
             string query = @$"INSERT INTO player_account(email, account_name, password, first_name, sur_name, birthday, create_date)
@@ -52,15 +51,26 @@ namespace DataBase.Persistance
             command.Parameters.AddWithValue("date", DateTime.Now);
             try
             {
-                long result = (long)command.ExecuteScalar();
-            }catch(Exception ex)
-            {
-                return false;
+                var result = command.ExecuteScalar();
+                if(result == null)
+                {
+                    Console.WriteLine("Result is null!");
+                    return 0;
+                }
+                return (long)result;
             }
-
-            return true;
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message);
+                return 0;
+            }
         }
 
+        /// <summary>
+        /// Checks if a player with the given ID already exists in the database
+        /// </summary>
+        /// <param name="id">ID of the player</param>
+        /// <returns>true if it exists, false if not</returns>
         public static bool PlayerExistsByID(long id)
         {
             string query = @$"SELECT * FROM player_account WHERE id = @id";
@@ -72,6 +82,12 @@ namespace DataBase.Persistance
             return reader.Read();
         }
 
+
+        /// <summary>
+        /// Checks if a player with the given Email already exists in the database
+        /// </summary>
+        /// <param name="id">ID of the player</param>
+        /// <returns>true if it exists, false if not</returns>
         public static bool PlayerExistsByEmail(string email)
         {
             string query = @$"SELECT * FROM player_account WHERE email = @email";

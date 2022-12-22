@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Network.Attributes;
+using Newtonsoft.Json;
 
 namespace Network.Game
 {
@@ -7,7 +8,7 @@ namespace Network.Game
     /// </summary>
     public abstract class PersistantObject
     {
-        public long id;
+        [Column("id", primaryKey: true)] public long id;
 
         /// <summary>
         /// Converts this object to a Json string, using Newtonsoft.Json

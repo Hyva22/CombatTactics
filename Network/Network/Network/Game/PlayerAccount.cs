@@ -1,16 +1,18 @@
-﻿using System;
+﻿using Network.Attributes;
+using System;
 
 namespace Network.Game
 {
+    [Table("player_account")]
     public class PlayerAccount : PersistantObject
     {
-        public string email;
-        public string accountName;
-        public string password;
-        public string firstName;
-        public string surName;
-        public DateTime birthDay;
-        public DateTime creationDate;
-        public DateTime lastLogin;
+        [Column("email")] public string email;
+        [Column("account_name")] public string accountName;
+        [Column("password")] public string password;
+        [Column("first_name")] public string firstName;
+        [Column("sur_name")] public string surName;
+        [Column("birthday")] public DateTime birthDay;
+        [Column("create_date")] public DateTime creationDate;
+        [Column("last_login")] public DateTime lastLogin;
     }
 }

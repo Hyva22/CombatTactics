@@ -1,6 +1,10 @@
-﻿using Network.Game;
+﻿using Network.Attributes;
+using Network.Game;
 using Npgsql;
 using System.Diagnostics;
+using System.Reflection;
+using System.Reflection.PortableExecutable;
+using System.Runtime.InteropServices;
 
 namespace DataBase.Persistance
 {
@@ -12,10 +16,72 @@ namespace DataBase.Persistance
         private const string Database = "Game";
         private static NpgsqlConnection? connection;
 
+        /// <summary>
+        /// Connects the static class to the database
+        /// </summary>
         public static void Connect()
         {
             connection = new($"Host={Host};Username={Username};Password={Password};Database={Database}");
             connection.Open();
+        }
+
+        public static Dictionary<string, object> GetData<C>(string field, object value)
+        {
+            string tableName = PersistantObjectParser.GetTableName<C>();
+            string query = @$"SELECT * FROM {tableName} WHERE {field} = @{field}";
+            NpgsqlCommand command = new(query, connection);
+            command.Parameters.AddWithValue(field, value);
+
+            Dictionary<string, object> data = new();
+
+            NpgsqlDataReader reader;
+            try
+            {
+                reader = command.ExecuteReader();
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message);
+                return data;
+            }
+
+            if (!reader.Read())
+                return data;
+
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                string dataName = reader.GetName(i);
+                object dataValue = reader.GetValue(i);
+                if (dataValue == DBNull.Value)
+                    dataValue = null;
+                data.Add(dataName, dataValue);
+            }
+
+            return data;
+        }
+
+        private static T Map<T>(Dictionary<string, object> data, Dictionary<Column, FieldInfo> fields, Func<T> factory)
+        {
+            T t = factory();
+            foreach(var field in fields)
+            {
+                var name = field.Key.Name;
+                object? value;
+                data.TryGetValue(name, out value);
+                if(value != null)
+                    field.Value.SetValue(t, value);
+            }
+
+            return t;
+        }
+
+        public static T Find<T>(string field, object value, Func<T> factory)
+        {
+            var data = GetData<T>(field, value);
+            var fields = PersistantObjectParser.GetAttributes<T, Column>();
+            var result = Map<T>(data, fields, factory);
+
+            return result;
         }
 
         private static string GenerateInsertString(PersistantObject obj)
@@ -37,7 +103,6 @@ namespace DataBase.Persistance
 
             foreach(var item in data)
             {
-                Console.WriteLine($"{item.Key}: {item.Value} {item.Value == null} {item.Value == default}");
                 command.Parameters.AddWithValue(item.Key, item.Value ?? DBNull.Value);
             }
 
@@ -59,46 +124,9 @@ namespace DataBase.Persistance
         }
 
         /// <summary>
-        /// Adds the given player account to the database.
-        /// </summary>
-        /// <param name="playerAccount">The account to be added</param>
-        /// <returns>Id of the newly created account. 0 if the creation failed.</returns>
-        public static long AddPlayerAccount(PlayerAccount playerAccount)
-        {
-            Console.WriteLine($"Email: {playerAccount.email}");
-            string query = @$"INSERT INTO player_account(email, account_name, password, first_name, sur_name, birthday, create_date)
-                                    VALUES(@email, @account_name, @password, @first_name, @sur_name, @birthday, @date)
-                                    RETURNING id;";
-
-            NpgsqlCommand command = new(query, connection);
-            command.Parameters.AddWithValue("email", playerAccount.email);
-            command.Parameters.AddWithValue("account_name", playerAccount.accountName);
-            command.Parameters.AddWithValue("password", playerAccount.password);
-            command.Parameters.AddWithValue("first_name", playerAccount.firstName);
-            command.Parameters.AddWithValue("sur_name", playerAccount.surName);
-            command.Parameters.AddWithValue("birthday", playerAccount.birthDay);
-            command.Parameters.AddWithValue("date", DateTime.Now);
-            try
-            {
-                var result = command.ExecuteScalar();
-                if(result == null)
-                {
-                    Console.WriteLine("Result is null!");
-                    return 0;
-                }
-                return (long)result;
-            }
-            catch (Exception exception)
-            {
-                Console.WriteLine(exception.Message);
-                return 0;
-            }
-        }
-
-        /// <summary>
         /// Checks if a player with the given ID already exists in the database
         /// </summary>
-        /// <param name="id">ID of the player</param>
+        /// <param dataName="id">ID of the player</param>
         /// <returns>true if it exists, false if not</returns>
         public static bool PlayerExistsByID(long id)
         {
@@ -107,7 +135,7 @@ namespace DataBase.Persistance
             NpgsqlCommand command = new(query, connection);
             command.Parameters.AddWithValue("id", id);
 
-            NpgsqlDataReader reader = command.ExecuteReader();
+            using NpgsqlDataReader reader = command.ExecuteReader();
             return reader.Read();
         }
 
@@ -115,7 +143,7 @@ namespace DataBase.Persistance
         /// <summary>
         /// Checks if a player with the given Email already exists in the database
         /// </summary>
-        /// <param name="id">ID of the player</param>
+        /// <param dataName="id">ID of the player</param>
         /// <returns>true if it exists, false if not</returns>
         public static bool PlayerExistsByEmail(string email)
         {
@@ -124,47 +152,10 @@ namespace DataBase.Persistance
             NpgsqlCommand command = new(query, connection);
             command.Parameters.AddWithValue("email", email);
 
-            NpgsqlDataReader reader = command.ExecuteReader();
-            return reader.Read();
+            using NpgsqlDataReader reader = command.ExecuteReader();
+            bool found = reader.Read();
+
+            return found;
         }
-
-        //public static PlayerAccount? GetPlayerAccount(long id)
-        //{
-        //    string queryHead = @$"SELECT * FROM player_account WHERE id = @id";
-
-        //    NpgsqlCommand command = new(queryHead, connection);
-        //    command.Parameters.AddWithValue("id", id);
-
-        //    NpgsqlDataReader reader = command.ExecuteReader();
-        //    if(!reader.Read())
-        //        return null;
-
-        //    id = reader.GetInt64(0);
-        //    string email = reader.GetString(1);
-        //    string accountName = reader.GetString(2);
-        //    string password = reader.GetString(3);
-        //    string firstName = reader.GetString(4);
-        //    string surName = reader.GetString(5);
-        //    DateOnly birthDay = DateOnly.FromDateTime(reader.GetDateTime(6));
-        //    DateTime creationDate = reader.GetDateTime(7);
-        //    DateTime LastLogin;
-        //    try
-        //    {
-        //        LastLogin = reader.GetDateTime(8);
-        //    }
-        //    catch (Exception)
-        //    {
-        //        LastLogin = default;
-        //    }
-
-        //    PlayerAccount playerAccount = new(id, email, accountName, password, creationDate)
-        //    {
-        //        FirstName= firstName,
-        //        SurName= surName,
-        //        BirthDay = birthDay,
-        //        LastLogin = LastLogin
-        //    };
-        //    return playerAccount;
-        //}
     }
 }

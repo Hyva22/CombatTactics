@@ -23,27 +23,15 @@ namespace DatabaseServer
             while (true)
             {
                 input = Console.ReadLine() ?? "";
-                if(input == "add")
+                if(input == "f")
                 {
-                    InsertTest();
+                    Console.WriteLine(DatabaseQueries.PlayerExistsByEmail("t@t.de"));
+                }
+                if(input == "g")
+                {
+                    Console.WriteLine(DatabaseQueries.PlayerExistsByID(1));
                 }
             }
-        }
-
-        private static void InsertTest()
-        {
-
-            PlayerAccount player = new PlayerAccount()
-            {
-                id = 1,
-                accountName = "Test",
-                email = "tt@e.de",
-                password = "123"
-            };
-
-            var result = DatabaseQueries.Insert(player);
-
-            Console.WriteLine(result);
         }
     }
 }

@@ -20,7 +20,8 @@ namespace GameClient
 
         private static void InitializePacketHandlers()
         {
-            AddPacketHandler(PacketID.EmailTaken, ReceiveEmailTaken);
+            AddPacketHandler(PacketID.Register, ReceiveRegister);
+            AddPacketHandler(PacketID.Login, ReceiveLogin);
         }
 
         private static void AddPacketHandler(PacketID id, Action<Packet> action)
@@ -28,8 +29,8 @@ namespace GameClient
             client.packetHandler.AddPacketHandler(id, action);
         }
 
-        #region send
-        public static void Register(PlayerAccount playerAccount)
+        #region Packet
+        public static void SendRegister(PlayerAccount playerAccount)
         {
             Debug.Log("send register");
             Packet packet = new(PacketID.Register);
@@ -37,14 +38,50 @@ namespace GameClient
             packet.Write(jsonString);
             client.tcp.SendData(packet);
         }
-        #endregion send
 
-        #region receive
-        public static void ReceiveEmailTaken(Packet packet)
+        public static void ReceiveRegister(Packet packet)
         {
-            string email = packet.ReadString();
-            Debug.Log($"The email {email} is taken");
+            string playerString = packet.ReadString();
+            bool emailTaken = packet.ReadBool();
+
+            if(emailTaken)
+            {
+                Debug.Log("Email Taken");
+                return;
+            }
+
+            PlayerAccount playerAccount = PersistantObject.FromJson<PlayerAccount>(playerString);
+            Debug.Log($"Created: {playerAccount.accountName}");
         }
-        #endregion receive
+
+        public static void SendLogin(PlayerAccount playerAccount)
+        {
+            Debug.Log("send login");
+            Packet packet = new(PacketID.Login);
+            string jsonString = playerAccount.ToJson();
+            packet.Write(jsonString);
+            client.tcp.SendData(packet);
+        }
+
+        public static void ReceiveLogin(Packet packet)
+        {
+            Debug.Log("receive login");
+            string playerString = packet.ReadString();
+            bool valid = packet.ReadBool();
+
+            if(!valid)
+            {
+                Debug.Log("incorrect credentials");
+                return;
+            }
+
+            Debug.Log("A");
+
+            PlayerAccount playerAccount = PersistantObject.FromJson<PlayerAccount>(playerString);
+            Debug.Log("B");
+            GameManager.Player.PlayerAccount = playerAccount;
+            Debug.Log($"Login!");
+        }
+        #endregion Packet
     }
 }

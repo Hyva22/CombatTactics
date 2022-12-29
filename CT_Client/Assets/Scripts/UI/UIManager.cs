@@ -17,9 +17,15 @@ namespace UI
 
         private void Awake()
         {
-            instance = this;
-            OpenLoginUI();
-            GameClient.GameClient.ConnectToServer("127.0.0.1", 22220);
+            if (instance == null)
+            {
+                instance = this;
+            }
+            else
+            {
+                Debug.Log($"Instance of {GetType()} already exists!");
+            }
+            Destroy(this);
         }
 
         private static void OpenUI(GameObject uiObject)

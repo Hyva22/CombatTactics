@@ -1,3 +1,4 @@
+using Network.Game;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -19,17 +20,19 @@ namespace UI
 
         private void Initialize()
         {
+            loginButton.onClick.AddListener(Login);
             registerButton.onClick.AddListener(UIManager.OpenRegisterUI);
         }
 
         public void Login()
         {
+            PlayerAccount playerAccount = new()
+            {
+                email = emailInput.text,
+                password = passwordInput.text,
+            };
 
-        }
-
-        public void Register()
-        {
-
+            GameClient.GameClient.SendLogin(playerAccount);
         }
     }
 }

@@ -2,7 +2,6 @@
 using Network;
 using Network.Game;
 using Network.Server;
-using System.Text.Json;
 
 namespace DatabaseServer.Network
 {
@@ -24,18 +23,10 @@ namespace DatabaseServer.Network
         private void InitializePacketHandlers()
         {
             server.packetHandler.AddPacketHandler((int)PacketID.Register, ReceiveRegister);
+            server.packetHandler.AddPacketHandler((int)PacketID.Login, ReceiveLogin);
         }
 
-        #region send
-        public void SendEmailTaken(int clientID, string email)
-        {
-            Packet packet = new(PacketID.EmailTaken);
-            packet.Write(email);
-            server.SendTCP(clientID, packet);
-        }
-        #endregion send
-
-        #region receive
+        #region Packet
         private void ReceiveRegister(Packet packet)
         {
             string jsonString = packet.ReadString();
@@ -44,12 +35,48 @@ namespace DatabaseServer.Network
 
             if (DatabaseQueries.PlayerExistsByEmail(email))
             {
-                SendEmailTaken(packet.GetSenderID(), email);
+                SendRegister(packet.GetSenderID(), playerAccount, emailTaken: true);
                 return;
             }
 
-            DatabaseQueries.AddPlayerAccount(playerAccount);
+            DatabaseQueries.Insert(playerAccount);
+            SendRegister(packet.GetSenderID(), playerAccount);
         }
-        #endregion receive
+
+        public void SendRegister(int clientID, PlayerAccount playerAccount, bool emailTaken = false)
+        {
+            Packet packet = new(PacketID.Register);
+            packet.Write(playerAccount.ToJson());
+            packet.Write(emailTaken);
+            server.SendTCP(clientID, packet);
+        }
+
+        private void ReceiveLogin(Packet packet)
+        {
+            Console.WriteLine("Login");
+            string jsonString = packet.ReadString();
+            PlayerAccount receivedAccount = PersistantObject.FromJson<PlayerAccount>(jsonString);
+            string email = receivedAccount.email;
+
+            PlayerAccount foundAccount = DatabaseQueries.Find<PlayerAccount>("email", receivedAccount.email, () => new());
+
+            if (foundAccount.id == 0 || foundAccount.password != receivedAccount.password)
+            {
+                SendLogin(packet.GetSenderID(), receivedAccount, invalid: true);
+                return;
+            }
+
+            SendLogin(packet.GetSenderID(), foundAccount);
+        }
+
+        public void SendLogin(int clientID, PlayerAccount playerAccount, bool invalid = false)
+        {
+            Console.WriteLine("Send Login");
+            Packet packet = new(PacketID.Login);
+            packet.Write(playerAccount.ToJson());
+            packet.Write(invalid);
+            server.SendTCP(clientID, packet);
+        }
+        #endregion Packet
     }
 }

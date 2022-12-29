@@ -26,7 +26,7 @@ namespace UI
         private void Initialize()
         {
             loginButton.onClick.AddListener(UIManager.OpenLoginUI);
-            registerButton.onClick.AddListener(Register);
+            registerButton.onClick.AddListener(SendRegister);
         }
 
         private PlayerAccount ReadPlayerAccount()
@@ -42,11 +42,9 @@ namespace UI
             };
         }
 
-        public void Register()
+        private void SendRegister()
         {
-            GameClient.GameClient.Register(ReadPlayerAccount());
-            //GameClient.GameClient.Register(emailInput.text, passwordInput.text, accountNameInput.text, firstNameInput.text, surNameInput.text,
-            //    birthdayInput.Year, birthdayInput.Month, birthdayInput.Day);
+            GameClient.GameClient.SendRegister(ReadPlayerAccount());
         }
     }
 }

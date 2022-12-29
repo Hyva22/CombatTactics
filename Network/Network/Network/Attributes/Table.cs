@@ -2,7 +2,7 @@
 
 namespace Network.Attributes
 {
-    internal class Table : Attribute
+    public class Table : Attribute
     {
         public string Name;
 
